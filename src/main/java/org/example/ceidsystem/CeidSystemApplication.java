@@ -9,5 +9,4 @@ public class CeidSystemApplication {
     public static void main(String[] args) {
         SpringApplication.run(CeidSystemApplication.class, args);
     }
-
 }
