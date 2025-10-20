@@ -1,0 +1,82 @@
+package org.example.ceid_v2.dto;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+public class NicApplicationWizardDto {
+    // Citizen / User Information
+    private String firstName;
+    private String lastName;
+    private String nic; // existing NIC
+    private LocalDate dateOfBirth;
+    private String gender; // Male/Female/Other
+    private String nationality;
+    private String email;
+    private String phone;
+    private String addressLine1;
+    private String city;
+    private String district;
+    private String postalCode;
+
+    // Application Details
+    private String mainApplicationType; // NIC/DRIVING_LICENSE/PASSPORT
+    private String applicationCategory; // New/Renewal/Replacement
+    private String reasonForRequest; // free text
+    private String remarks;
+
+    // Documents (filenames after upload temp)
+    private List<String> uploadedTempFiles = new ArrayList<>();
+    private List<String> uploadedOriginalNames = new ArrayList<>();
+    private List<String> uploadedTypes = new ArrayList<>();
+    private List<String> documentTypes = new ArrayList<>();
+
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+    public String getNic() { return nic; }
+    public void setNic(String nic) { this.nic = nic; }
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+    public String getNationality() { return nationality; }
+    public void setNationality(String nationality) { this.nationality = nationality; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+    public String getAddressLine1() { return addressLine1; }
+    public void setAddressLine1(String addressLine1) { this.addressLine1 = addressLine1; }
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+    public String getDistrict() { return district; }
+    public void setDistrict(String district) { this.district = district; }
+    public String getPostalCode() { return postalCode; }
+    public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
+    public String getMainApplicationType() { return mainApplicationType; }
+    public void setMainApplicationType(String mainApplicationType) { this.mainApplicationType = mainApplicationType; }
+    public String getApplicationCategory() { return applicationCategory; }
+    public void setApplicationCategory(String applicationCategory) { this.applicationCategory = applicationCategory; }
+    
+    // Backward compatibility method
+    public String getApplicationType() { return mainApplicationType; }
+    public void setApplicationType(String applicationType) { this.mainApplicationType = applicationType; }
+    public String getReasonForRequest() { return reasonForRequest; }
+    public void setReasonForRequest(String reasonForRequest) { this.reasonForRequest = reasonForRequest; }
+    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }
+    public List<String> getUploadedTempFiles() { return uploadedTempFiles; }
+    public List<String> getUploadedOriginalNames() { return uploadedOriginalNames; }
+    public List<String> getUploadedTypes() { return uploadedTypes; }
+    public List<String> getDocumentTypes() { return documentTypes; }
+}
+
+
+
+
+
+
+
+
