@@ -1,0 +1,64 @@
+package org.example.ceid_v2.controller;
+
+import org.example.ceid_v2.model.User;
+import org.example.ceid_v2.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import jakarta.validation.Valid;
+
+@Controller
+public class AuthController {
+    
+    @Autowired
+    private UserService userService;
+    
+    @GetMapping("/login")
+    public String loginPage(@RequestParam(value = "error", required = false) String error,
+                           @RequestParam(value = "logout", required = false) String logout,
+                           Model model) {
+        if (error != null) {
+            model.addAttribute("errorMessage", "Invalid username or password!");
+        }
+        if (logout != null) {
+            model.addAttribute("successMessage", "You have been logged out successfully!");
+        }
+        return "auth/login";
+    }
+    
+    @GetMapping("/register")
+    public String registerPage(Model model) {
+        model.addAttribute("user", new User());
+        return "auth/register";
+    }
+    
+    @PostMapping("/register")
+    public String registerUser(@Valid User user, BindingResult bindingResult, 
+                              RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            return "auth/register";
+        }
+        
+        try {
+            userService.registerUser(user);
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Registration successful! Please login with your credentials.");
+            return "redirect:/login";
+        } catch (RuntimeException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/register";
+        }
+    }
+    
+    @GetMapping("/")
+    public String home() {
+        return "redirect:/dashboard";
+    }
+}
+
