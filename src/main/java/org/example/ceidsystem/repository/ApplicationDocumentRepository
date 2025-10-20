@@ -1,0 +1,19 @@
+package org.example.ceid_v2.repository;
+
+import org.example.ceid_v2.model.ApplicationDocument;
+import org.example.ceid_v2.model.NicApplication;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface ApplicationDocumentRepository extends JpaRepository<ApplicationDocument, Long> {
+    List<ApplicationDocument> findByApplication(NicApplication app);
+}
+
+
+
+
+
+
+
+
