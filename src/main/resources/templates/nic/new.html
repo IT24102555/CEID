@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request NIC - New Application</title>
+    <style>
+        body { background: linear-gradient(135deg,#0a0a1a,#1a1a2e); color:#e0e0e0; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+        .card { background: rgba(15,23,42,.9); border:1px solid rgba(59,130,246,.1); border-radius:12px; padding:24px; width:100%; max-width:800px; box-shadow:0 10px 30px rgba(0,0,0,.4); }
+        .title { font-size:24px; color:#e0e7ff; margin-bottom:18px; }
+        .grid { display:grid; grid-template-columns: repeat(2,1fr); gap:16px; }
+        .form-group label{ color:#cbd5e1; display:block; margin-bottom:8px; }
+        .input, .textarea { width:100%; padding:12px 14px; border-radius:8px; border:1px solid #334155; background:rgba(30,41,59,.7); color:#e2e8f0; }
+        .textarea { min-height:100px; }
+        .row { margin-top:16px; display:flex; gap:12px; align-items:center; }
+        .btn-primary { background: linear-gradient(135deg,#2563eb,#1d4ed8); border:none; color:#fff; padding:12px 18px; border-radius:8px; cursor:pointer; box-shadow:0 4px 10px rgba(37,99,235,.3); }
+        .btn-primary:hover { background: linear-gradient(135deg,#1d4ed8,#1e40af); }
+        .progress { width:100%; height:10px; background:#1f2937; border-radius:6px; overflow:hidden; border:1px solid #334155; }
+        .progress-bar { height:100%; width:0%; background: linear-gradient(135deg,#2563eb,#1d4ed8); transition: width .2s ease; }
+        .alert { padding:12px 16px; border-radius:8px; margin-bottom:20px; border:1px solid; }
+        .alert-success { background: rgba(34,197,94,.1); border-color:#22c55e; color:#86efac; }
+        @media(max-width:768px){ .grid{ grid-template-columns:1fr; } }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="title">Request New NIC</div>
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+        <form id="nicForm" th:action="@{/nic/new}" method="post" enctype="multipart/form-data">
+            <div class="grid">
+                <div class="form-group">
+                    <label for="fullName">Full Name</label>
+                    <input class="input" id="fullName" name="fullName" required />
+                </div>
+                <div class="form-group">
+                    <label for="contactNumber">Contact Number</label>
+                    <input class="input" id="contactNumber" name="contactNumber" required />
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="address">Address</label>
+                    <textarea class="textarea" id="address" name="address" required></textarea>
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="file">Upload Photo/Document</label>
+                    <input class="input" id="file" name="file" type="file" accept="image/*,.pdf" required />
+                </div>
+            </div>
+            <div class="row">
+                <button type="submit" class="btn-primary">Submit Application</button>
+            </div>
+            <div class="row" style="margin-top:12px;">
+                <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+                <span id="progressText" style="min-width:60px; text-align:right; color:#94a3b8;">0%</span>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('nicForm');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            const data = new FormData(form);
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', form.action);
+            xhr.upload.addEventListener('progress', function(ev){
+                if(ev.lengthComputable){
+                    const pct = Math.round((ev.loaded / ev.total) * 100);
+                    progressBar.style.width = pct + '%';
+                    progressText.textContent = pct + '%';
+                }
+            });
+            xhr.onload = function(){
+                if(xhr.status >= 200 && xhr.status < 300){
+                    window.location.href = '/nic/my';
+                }
+            };
+            xhr.send(data);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
