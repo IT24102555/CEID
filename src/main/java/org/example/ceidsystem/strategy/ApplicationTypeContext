@@ -1,0 +1,69 @@
+package org.example.ceid_v2.strategy;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Context class that manages different application type strategies
+ * This is the main entry point for using the Strategy pattern
+ */
+@Component
+public class ApplicationTypeContext {
+    
+    private final Map<String, ApplicationTypeStrategy> strategies;
+    
+    @Autowired
+    public ApplicationTypeContext(List<ApplicationTypeStrategy> strategyList) {
+        this.strategies = new HashMap<>();
+        
+        // Register all available strategies
+        for (ApplicationTypeStrategy strategy : strategyList) {
+            strategies.put(strategy.getApplicationType().toLowerCase(), strategy);
+        }
+    }
+    
+    /**
+     * Get a strategy by application type
+     * @param applicationType the type of application (nic, driving_license, passport)
+     * @return the corresponding strategy
+     * @throws IllegalArgumentException if the strategy is not found
+     */
+    public ApplicationTypeStrategy getStrategy(String applicationType) {
+        if (applicationType == null || applicationType.trim().isEmpty()) {
+            throw new IllegalArgumentException("Application type cannot be null or empty");
+        }
+        
+        String key = applicationType.toLowerCase().trim();
+        ApplicationTypeStrategy strategy = strategies.get(key);
+        
+        if (strategy == null) {
+            throw new IllegalArgumentException("No strategy found for application type: " + applicationType);
+        }
+        
+        return strategy;
+    }
+    
+    /**
+     * Get all available strategies
+     * @return map of all available strategies
+     */
+    public Map<String, ApplicationTypeStrategy> getAllStrategies() {
+        return new HashMap<>(strategies);
+    }
+    
+    /**
+     * Check if a strategy exists for the given application type
+     * @param applicationType the application type to check
+     * @return true if strategy exists, false otherwise
+     */
+    public boolean hasStrategy(String applicationType) {
+        if (applicationType == null || applicationType.trim().isEmpty()) {
+            return false;
+        }
+        return strategies.containsKey(applicationType.toLowerCase().trim());
+    }
+}
