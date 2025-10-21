@@ -1,0 +1,75 @@
+package org.example.ceid_v2.model;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "delivery_details")
+public class DeliveryDetail {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "application_id", nullable = false)
+    private NicApplication application;
+
+    @Column(nullable = false)
+    private String reviewerUsername;
+
+    @Column(nullable = false)
+    private String method; // POST or DISPATCH
+
+    // For POST
+    @Column
+    private String recipientName;
+    @Column
+    private String addressLine1;
+    @Column
+    private String city;
+    @Column
+    private String postalCode;
+
+    // For DISPATCH
+    @Column
+    private String dispatchLocation;
+    @Column
+    private String pickupContact;
+
+    @Column(length = 2000)
+    private String notes;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public NicApplication getApplication() { return application; }
+    public void setApplication(NicApplication application) { this.application = application; }
+    public String getReviewerUsername() { return reviewerUsername; }
+    public void setReviewerUsername(String reviewerUsername) { this.reviewerUsername = reviewerUsername; }
+    public String getMethod() { return method; }
+    public void setMethod(String method) { this.method = method; }
+    public String getRecipientName() { return recipientName; }
+    public void setRecipientName(String recipientName) { this.recipientName = recipientName; }
+    public String getAddressLine1() { return addressLine1; }
+    public void setAddressLine1(String addressLine1) { this.addressLine1 = addressLine1; }
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+    public String getPostalCode() { return postalCode; }
+    public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
+    public String getDispatchLocation() { return dispatchLocation; }
+    public void setDispatchLocation(String dispatchLocation) { this.dispatchLocation = dispatchLocation; }
+    public String getPickupContact() { return pickupContact; }
+    public void setPickupContact(String pickupContact) { this.pickupContact = pickupContact; }
+    public String getNotes() { return notes; }
+    public void setNotes(String notes) { this.notes = notes; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+}
+
+
+
+
+
