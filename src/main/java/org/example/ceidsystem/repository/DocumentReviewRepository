@@ -1,0 +1,18 @@
+package org.example.ceid_v2.repository;
+
+import org.example.ceid_v2.model.DocumentReview;
+import org.example.ceid_v2.model.NicApplication;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface DocumentReviewRepository extends JpaRepository<DocumentReview, Long> {
+    List<DocumentReview> findByApplicationOrderByCreatedAtDesc(NicApplication app);
+    List<DocumentReview> findByApplicationAndReviewerUsernameOrderByCreatedAtDesc(NicApplication app, String reviewerUsername);
+}
+
+
+
+
+
+
