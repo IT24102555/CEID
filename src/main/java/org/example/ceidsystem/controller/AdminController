@@ -1,0 +1,592 @@
+package org.example.ceid_v2.controller;
+
+import org.example.ceid_v2.model.NicApplication;
+import org.example.ceid_v2.model.ContactPerson;
+import org.example.ceid_v2.model.OfficerRecord;
+import org.example.ceid_v2.model.User;
+import org.example.ceid_v2.model.ReviewRecord;
+import org.example.ceid_v2.model.DocumentReview;
+import org.example.ceid_v2.model.DeliveryDetail;
+import org.example.ceid_v2.repository.NicApplicationRepository;
+import org.example.ceid_v2.repository.ContactPersonRepository;
+import org.example.ceid_v2.repository.OfficerRecordRepository;
+import org.example.ceid_v2.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+
+@Controller
+@RequestMapping("/admin")
+public class AdminController {
+
+    @Autowired
+    private NicApplicationRepository nicApplicationRepository;
+
+    @Autowired
+    private OfficerRecordRepository officerRecordRepository;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private org.example.ceid_v2.repository.ReviewRecordRepository reviewRecordRepository;
+
+    @Autowired
+    private org.example.ceid_v2.repository.DocumentReviewRepository documentReviewRepository;
+
+    @Autowired
+    private org.example.ceid_v2.repository.DeliveryDetailRepository deliveryDetailRepository;
+
+    @Autowired
+    private ContactPersonRepository contactPersonRepository;
+
+    private void addUser(Authentication auth, Model model){
+        if (auth != null) {
+            String username = auth.getName();
+            model.addAttribute("username", username);
+            User u = userService.findByUsername(username).orElse(null);
+            model.addAttribute("fullName", u != null ? u.getFullName() : username);
+        }
+    }
+
+    @GetMapping
+    public String dashboard(Authentication auth, Model model){
+        addUser(auth, model);
+        long total = nicApplicationRepository.count();
+        model.addAttribute("count", total);
+
+        // Compute counts by status for charts/cards
+        long pending = nicApplicationRepository.countByStatus("PENDING");
+        long underReview = nicApplicationRepository.countByStatus("UNDER REVIEW");
+        long validated = nicApplicationRepository.countByStatus("VALIDATED");
+        long readyToIssue = nicApplicationRepository.countByStatus("READY_TO_ISSUE");
+        long approved = nicApplicationRepository.countByStatus("APPROVED");
+        long rejected = nicApplicationRepository.countByStatus("REJECTED");
+        long issued = nicApplicationRepository.countByStatus("ISSUED");
+        long delivered = nicApplicationRepository.countByStatus("DELIVERED");
+
+        model.addAttribute("pendingCount", pending);
+        model.addAttribute("underReviewCount", underReview);
+        model.addAttribute("validatedCount", validated);
+        model.addAttribute("readyToIssueCount", readyToIssue);
+        model.addAttribute("approvedCount", approved);
+        model.addAttribute("rejectedCount", rejected);
+        model.addAttribute("issuedCount", issued);
+        model.addAttribute("deliveredCount", delivered);
+
+        // Also provide a compact dataset for charts
+        java.util.List<String> labels = java.util.Arrays.asList(
+            "PENDING","UNDER REVIEW","VALIDATED","READY_TO_ISSUE","APPROVED","REJECTED","ISSUED","DELIVERED"
+        );
+        java.util.List<Long> data = java.util.Arrays.asList(
+            pending, underReview, validated, readyToIssue, approved, rejected, issued, delivered
+        );
+        model.addAttribute("statusLabels", labels);
+        model.addAttribute("statusData", data);
+        return "admin/dashboard";
+    }
+
+    // Contacts - Admin CRUD
+    @GetMapping("/contacts")
+    public String contacts(Authentication auth, Model model){
+        addUser(auth, model);
+        model.addAttribute("contacts", contactPersonRepository.findAllByOrderByDepartmentAscNameAsc());
+        return "admin/contacts";
+    }
+
+    @PostMapping("/contacts")
+    public String createContact(Authentication auth,
+                                @RequestParam String name,
+                                @RequestParam String department,
+                                @RequestParam String phone,
+                                RedirectAttributes ra){
+        ContactPerson c = new ContactPerson();
+        c.setName(name);
+        c.setDepartment(department);
+        c.setPhone(phone);
+        contactPersonRepository.save(c);
+        ra.addFlashAttribute("successMessage","Contact created");
+        return "redirect:/admin/contacts";
+    }
+
+    @PostMapping("/contacts/{id}")
+    public String updateContact(Authentication auth,
+                                @PathVariable Long id,
+                                @RequestParam String name,
+                                @RequestParam String department,
+                                @RequestParam String phone,
+                                RedirectAttributes ra){
+        ContactPerson c = contactPersonRepository.findById(id).orElseThrow();
+        c.setName(name);
+        c.setDepartment(department);
+        c.setPhone(phone);
+        contactPersonRepository.save(c);
+        ra.addFlashAttribute("successMessage","Contact updated");
+        return "redirect:/admin/contacts";
+    }
+
+    @PostMapping("/contacts/{id}/delete")
+    public String deleteContact(Authentication auth,
+                                @PathVariable Long id,
+                                RedirectAttributes ra){
+        contactPersonRepository.deleteById(id);
+        ra.addFlashAttribute("successMessage","Contact deleted");
+        return "redirect:/admin/contacts";
+    }
+
+    @GetMapping("/applications")
+    public String applications(Authentication auth, Model model){
+        addUser(auth, model);
+        List<NicApplication> apps = nicApplicationRepository.findAll();
+        model.addAttribute("applications", apps);
+        return "admin/applications";
+    }
+
+    @GetMapping("/reviews/documents")
+    public String reviewDocuments(Authentication auth, Model model){
+        addUser(auth, model);
+        List<NicApplication> apps = nicApplicationRepository.findByStatusInOrderByCreatedAtDesc(java.util.Arrays.asList("VALIDATED","DELAYED"));
+        // Build a lightweight view model including first panel remarks (latest APPROVED review)
+        java.util.List<java.util.Map<String,Object>> items = new java.util.ArrayList<>();
+        for (NicApplication a : apps) {
+            java.util.Map<String,Object> m = new java.util.HashMap<>();
+            m.put("id", a.getId());
+            m.put("fullName", a.getFullName());
+            m.put("status", a.getStatus());
+            m.put("createdAt", a.getCreatedAt());
+            java.util.Optional<ReviewRecord> latestApproved = reviewRecordRepository.findLatestApprovedByApplication(a);
+            if (latestApproved.isPresent()) {
+                ReviewRecord r = latestApproved.get();
+                m.put("firstPanelDecision", r.getDecision());
+                m.put("firstPanelRemarks", r.getRemarks());
+                m.put("firstPanelReviewer", r.getReviewerUsername());
+                m.put("firstPanelReviewedAt", r.getCreatedAt());
+            }
+            items.add(m);
+        }
+        model.addAttribute("items", items);
+        return "admin/reviews-documents";
+    }
+
+    @GetMapping("/reviews/delivery")
+    public String reviewDelivery(Authentication auth, Model model){
+        addUser(auth, model);
+        List<NicApplication> apps = nicApplicationRepository.findByStatusInOrderByCreatedAtDesc(java.util.Arrays.asList("READY_TO_ISSUE"));
+        java.util.List<java.util.Map<String,Object>> items = new java.util.ArrayList<>();
+        for (NicApplication a : apps) {
+            java.util.Map<String,Object> m = new java.util.HashMap<>();
+            m.put("id", a.getId());
+            m.put("fullName", a.getFullName());
+            m.put("status", a.getStatus());
+            m.put("createdAt", a.getCreatedAt());
+            items.add(m);
+        }
+        model.addAttribute("items", items);
+        return "admin/reviews-delivery";
+    }
+
+    @PostMapping("/applications/{id}/delivery")
+    public String createDelivery(Authentication auth,
+                                 @PathVariable Long id,
+                                 @RequestParam String method,
+                                 @RequestParam(required=false) String recipientName,
+                                 @RequestParam(required=false) String addressLine1,
+                                 @RequestParam(required=false) String city,
+                                 @RequestParam(required=false) String postalCode,
+                                 @RequestParam(required=false) String dispatchLocation,
+                                 @RequestParam(required=false) String pickupContact,
+                                 @RequestParam(required=false) String notes,
+                                 RedirectAttributes ra){
+        NicApplication app = nicApplicationRepository.findById(id).orElseThrow();
+        DeliveryDetail d = new DeliveryDetail();
+        d.setApplication(app);
+        d.setReviewerUsername(auth != null ? auth.getName() : "system");
+        d.setMethod(method);
+        d.setRecipientName(recipientName);
+        d.setAddressLine1(addressLine1);
+        d.setCity(city);
+        d.setPostalCode(postalCode);
+        d.setDispatchLocation(dispatchLocation);
+        d.setPickupContact(pickupContact);
+        d.setNotes(notes);
+        deliveryDetailRepository.save(d);
+        ra.addFlashAttribute("successMessage","Delivery details saved");
+        return "redirect:/admin/reviews/delivery";
+    }
+
+    @GetMapping(value = "/applications/{id}/delivery", produces = "application/json")
+    @ResponseBody
+    @Transactional(readOnly = true)
+    public java.util.List<java.util.Map<String,Object>> listDelivery(Authentication auth, @PathVariable Long id){
+        NicApplication app = nicApplicationRepository.findById(id).orElseThrow();
+        java.util.List<DeliveryDetail> list = deliveryDetailRepository.findByApplicationOrderByCreatedAtDesc(app);
+        java.util.List<java.util.Map<String,Object>> out = new java.util.ArrayList<>();
+        for(DeliveryDetail r : list){
+            java.util.Map<String,Object> m = new java.util.HashMap<>();
+            m.put("id", r.getId());
+            m.put("reviewerUsername", r.getReviewerUsername());
+            m.put("method", r.getMethod());
+            m.put("recipientName", r.getRecipientName());
+            m.put("addressLine1", r.getAddressLine1());
+            m.put("city", r.getCity());
+            m.put("postalCode", r.getPostalCode());
+            m.put("dispatchLocation", r.getDispatchLocation());
+            m.put("pickupContact", r.getPickupContact());
+            m.put("notes", r.getNotes());
+            m.put("createdAt", r.getCreatedAt() != null ? r.getCreatedAt().toString() : null);
+            m.put("isOwner", auth != null && r.getReviewerUsername().equals(auth.getName()));
+            out.add(m);
+        }
+        return out;
+    }
+
+    @PostMapping("/delivery/{id}/update")
+    public String updateDelivery(Authentication auth,
+                                 @PathVariable Long id,
+                                 @RequestParam String method,
+                                 @RequestParam(required=false) String recipientName,
+                                 @RequestParam(required=false) String addressLine1,
+                                 @RequestParam(required=false) String city,
+                                 @RequestParam(required=false) String postalCode,
+                                 @RequestParam(required=false) String dispatchLocation,
+                                 @RequestParam(required=false) String pickupContact,
+                                 @RequestParam(required=false) String notes,
+                                 RedirectAttributes ra){
+        DeliveryDetail d = deliveryDetailRepository.findById(id).orElseThrow();
+        if (auth == null || !d.getReviewerUsername().equals(auth.getName())) {
+            ra.addFlashAttribute("errorMessage","You can only edit your own delivery details");
+            return "redirect:/admin/reviews/delivery";
+        }
+        d.setMethod(method);
+        d.setRecipientName(recipientName);
+        d.setAddressLine1(addressLine1);
+        d.setCity(city);
+        d.setPostalCode(postalCode);
+        d.setDispatchLocation(dispatchLocation);
+        d.setPickupContact(pickupContact);
+        d.setNotes(notes);
+        deliveryDetailRepository.save(d);
+        ra.addFlashAttribute("successMessage","Delivery details updated");
+        return "redirect:/admin/reviews/delivery";
+    }
+
+    @PostMapping("/delivery/{id}/delete")
+    public String deleteDelivery(Authentication auth,
+                                 @PathVariable Long id,
+                                 RedirectAttributes ra){
+        DeliveryDetail d = deliveryDetailRepository.findById(id).orElse(null);
+        if (d == null) {
+            ra.addFlashAttribute("errorMessage","Delivery details not found");
+            return "redirect:/admin/reviews/delivery";
+        }
+        if (auth == null || !d.getReviewerUsername().equals(auth.getName())) {
+            ra.addFlashAttribute("errorMessage","You can only delete your own delivery details");
+            return "redirect:/admin/reviews/delivery";
+        }
+        deliveryDetailRepository.delete(d);
+        ra.addFlashAttribute("successMessage","Delivery details deleted");
+        return "redirect:/admin/reviews/delivery";
+    }
+
+    @PostMapping("/applications/{id}/documents/reviews")
+    public String createDocumentReview(Authentication auth,
+                                       @PathVariable Long id,
+                                       @RequestParam(required=false) String remarks,
+                                       @RequestParam(defaultValue = "DELAYED") String state,
+                                       RedirectAttributes ra){
+        NicApplication app = nicApplicationRepository.findById(id).orElseThrow();
+        DocumentReview dr = new DocumentReview();
+        dr.setApplication(app);
+        dr.setReviewerUsername(auth != null ? auth.getName() : "system");
+        dr.setRemarks(remarks);
+        dr.setState(state);
+        documentReviewRepository.save(dr);
+        // synchronize application status with document review state
+        if ("READY_TO_ISSUE".equalsIgnoreCase(state)) {
+            app.setStatus("READY_TO_ISSUE");
+        } else {
+            app.setStatus("DELAYED");
+        }
+        nicApplicationRepository.save(app);
+        ra.addFlashAttribute("successMessage","Document review added");
+        return "redirect:/admin/reviews/documents";
+    }
+
+    @GetMapping(value = "/applications/{id}/documents/reviews", produces = "application/json")
+    @ResponseBody
+    @Transactional(readOnly = true)
+    public java.util.List<java.util.Map<String,Object>> listDocumentReviews(Authentication auth, @PathVariable Long id){
+        NicApplication app = nicApplicationRepository.findById(id).orElseThrow();
+        java.util.List<DocumentReview> list = documentReviewRepository.findByApplicationOrderByCreatedAtDesc(app);
+        java.util.List<java.util.Map<String,Object>> out = new java.util.ArrayList<>();
+        for(DocumentReview r : list){
+            java.util.Map<String,Object> m = new java.util.HashMap<>();
+            m.put("id", r.getId());
+            m.put("reviewerUsername", r.getReviewerUsername());
+            m.put("remarks", r.getRemarks());
+            m.put("state", r.getState());
+            m.put("createdAt", r.getCreatedAt() != null ? r.getCreatedAt().toString() : null);
+            m.put("isOwner", auth != null && r.getReviewerUsername().equals(auth.getName()));
+            out.add(m);
+        }
+        return out;
+    }
+
+    @PostMapping("/documents/reviews/{reviewId}/update")
+    public String updateDocumentReview(Authentication auth,
+                                       @PathVariable Long reviewId,
+                                       @RequestParam(required=false) String remarks,
+                                       @RequestParam(required=false) String state,
+                                       RedirectAttributes ra){
+        DocumentReview r = documentReviewRepository.findById(reviewId).orElseThrow();
+        if (auth == null || !r.getReviewerUsername().equals(auth.getName())) {
+            ra.addFlashAttribute("errorMessage","You can only edit your own document reviews");
+            return "redirect:/admin/reviews/documents";
+        }
+        r.setRemarks(remarks);
+        if (state != null && !state.isEmpty()) { r.setState(state); }
+        documentReviewRepository.save(r);
+        // keep application status aligned with the latest document review state
+        if (state != null && !state.isEmpty()) {
+            NicApplication app = r.getApplication();
+            if ("READY_TO_ISSUE".equalsIgnoreCase(state)) {
+                app.setStatus("READY_TO_ISSUE");
+            } else {
+                app.setStatus("DELAYED");
+            }
+            nicApplicationRepository.save(app);
+        }
+        ra.addFlashAttribute("successMessage","Document review updated");
+        return "redirect:/admin/reviews/documents";
+    }
+
+    @PostMapping("/documents/reviews/{reviewId}/delete")
+    public String deleteDocumentReview(Authentication auth,
+                                       @PathVariable Long reviewId,
+                                       RedirectAttributes ra){
+        DocumentReview r = documentReviewRepository.findById(reviewId).orElse(null);
+        if (r == null) {
+            ra.addFlashAttribute("errorMessage","Document review not found");
+            return "redirect:/admin/reviews/documents";
+        }
+        if (auth == null || !r.getReviewerUsername().equals(auth.getName())) {
+            ra.addFlashAttribute("errorMessage","You can only delete your own document reviews");
+            return "redirect:/admin/reviews/documents";
+        }
+        documentReviewRepository.delete(r);
+        ra.addFlashAttribute("successMessage","Document review deleted");
+        return "redirect:/admin/reviews/documents";
+    }
+
+    @GetMapping("/applications/{id}")
+    public String viewApp(Authentication auth, @PathVariable Long id, Model model){
+        addUser(auth, model);
+        NicApplication app = nicApplicationRepository.findById(id).orElseThrow();
+        model.addAttribute("app", app);
+        return "admin/application-view";
+    }
+
+    @GetMapping(value = "/applications/{id}/details", produces = "application/json")
+    @ResponseBody
+    @Transactional(readOnly = true)
+    public Map<String, Object> applicationDetails(@PathVariable Long id) {
+        NicApplication app = nicApplicationRepository.findById(id).orElseThrow();
+        Map<String, Object> body = new HashMap<>();
+        body.put("id", app.getId());
+        body.put("fullName", app.getFullName());
+        body.put("username", app.getUser() != null ? app.getUser().getUsername() : null);
+        body.put("userEmail", app.getUser() != null ? app.getUser().getEmail() : null);
+        body.put("address", app.getAddress());
+        body.put("contactNumber", app.getContactNumber());
+        body.put("status", app.getStatus());
+        body.put("uploadedFileName", app.getUploadedFileName());
+        body.put("uploadedFilePath", app.getUploadedFilePath());
+        // Wizard fields
+        body.put("firstName", app.getFirstName());
+        body.put("lastName", app.getLastName());
+        body.put("nic", app.getNic());
+        body.put("dateOfBirth", app.getDateOfBirth() != null ? app.getDateOfBirth().toString() : null);
+        body.put("gender", app.getGender());
+        body.put("nationality", app.getNationality());
+        body.put("email", app.getEmail());
+        body.put("phone", app.getPhone());
+        body.put("addressLine1", app.getAddressLine1());
+        body.put("city", app.getCity());
+        body.put("district", app.getDistrict());
+        body.put("postalCode", app.getPostalCode());
+        body.put("applicationType", app.getApplicationType());
+        body.put("reasonForRequest", app.getReasonForRequest());
+        body.put("remarks", app.getRemarks());
+        // Latest review summary
+        java.util.List<ReviewRecord> reviews = reviewRecordRepository.findByApplicationOrderByCreatedAtDesc(app);
+        if (!reviews.isEmpty()) {
+            ReviewRecord r = reviews.get(0);
+            Map<String,Object> latest = new HashMap<>();
+            latest.put("decision", r.getDecision());
+            latest.put("remarks", r.getRemarks());
+            latest.put("reviewerUsername", r.getReviewerUsername());
+            latest.put("createdAt", r.getCreatedAt() != null ? r.getCreatedAt().toString() : null);
+            body.put("latestReview", latest);
+        }
+        body.put("createdAt", app.getCreatedAt() != null ? app.getCreatedAt().toString() : null);
+        body.put("updatedAt", app.getUpdatedAt() != null ? app.getUpdatedAt().toString() : null);
+        return body;
+    }
+
+    @PostMapping("/applications/{id}/review")
+    public String createReview(Authentication auth,
+                               @PathVariable Long id,
+                               @RequestParam String decision,
+                               @RequestParam(required=false) String remarks,
+                               RedirectAttributes ra){
+        NicApplication app = nicApplicationRepository.findById(id).orElseThrow();
+        ReviewRecord r = new ReviewRecord();
+        r.setApplication(app);
+        r.setReviewerUsername(auth != null ? auth.getName() : "system");
+        r.setDecision(decision);
+        r.setRemarks(remarks);
+        reviewRecordRepository.save(r);
+        if ("APPROVED".equalsIgnoreCase(decision)) {
+            app.setStatus("VALIDATED");
+            nicApplicationRepository.save(app);
+        } else if ("REJECTED".equalsIgnoreCase(decision)) {
+            app.setStatus("REJECTED");
+            nicApplicationRepository.save(app);
+        }
+        ra.addFlashAttribute("successMessage","Review saved");
+        if ("APPROVED".equalsIgnoreCase(decision)) {
+            return "redirect:/admin/reviews/documents";
+        }
+        return "redirect:/admin/applications";
+    }
+
+    @PostMapping("/reviews/{reviewId}/delete")
+    public String deleteReview(Authentication auth, @PathVariable Long reviewId, RedirectAttributes ra){
+        ReviewRecord r = reviewRecordRepository.findById(reviewId).orElse(null);
+        if (r == null) {
+            ra.addFlashAttribute("errorMessage","Review not found");
+            return "redirect:/admin/applications";
+        }
+        if (auth == null || !r.getReviewerUsername().equals(auth.getName())) {
+            ra.addFlashAttribute("errorMessage","You can only delete your own reviews");
+            return "redirect:/admin/applications";
+        }
+        reviewRecordRepository.delete(r);
+        ra.addFlashAttribute("successMessage","Review deleted");
+        return "redirect:/admin/applications";
+    }
+
+    @GetMapping(value = "/applications/{id}/reviews", produces = "application/json")
+    @ResponseBody
+    @Transactional(readOnly = true)
+    public java.util.List<java.util.Map<String,Object>> listReviews(@PathVariable Long id){
+        NicApplication app = nicApplicationRepository.findById(id).orElseThrow();
+        java.util.List<ReviewRecord> list = reviewRecordRepository.findByApplicationOrderByCreatedAtDesc(app);
+        java.util.List<java.util.Map<String,Object>> out = new java.util.ArrayList<>();
+        for(ReviewRecord r : list){
+            java.util.Map<String,Object> m = new java.util.HashMap<>();
+            m.put("id", r.getId());
+            m.put("reviewerUsername", r.getReviewerUsername());
+            m.put("decision", r.getDecision());
+            m.put("remarks", r.getRemarks());
+            m.put("createdAt", r.getCreatedAt() != null ? r.getCreatedAt().toString() : null);
+            out.add(m);
+        }
+        return out;
+    }
+
+    @PostMapping("/reviews/{reviewId}/update")
+    public String updateReview(Authentication auth,
+                               @PathVariable Long reviewId,
+                               @RequestParam String decision,
+                               @RequestParam(required=false) String remarks,
+                               RedirectAttributes ra){
+        ReviewRecord r = reviewRecordRepository.findById(reviewId).orElseThrow();
+        if (auth == null || !r.getReviewerUsername().equals(auth.getName())) {
+            ra.addFlashAttribute("errorMessage","You can only edit your own reviews");
+            return "redirect:/admin/applications";
+        }
+        r.setDecision(decision);
+        r.setRemarks(remarks);
+        reviewRecordRepository.save(r);
+        ra.addFlashAttribute("successMessage","Review updated");
+        return "redirect:/admin/applications";
+    }
+
+    @PostMapping("/applications/{id}")
+    public String updateApp(@PathVariable Long id,
+                            @RequestParam String status,
+                            @RequestParam(required=false) String remarks,
+                            RedirectAttributes ra){
+        NicApplication app = nicApplicationRepository.findById(id).orElseThrow();
+        app.setStatus(status);
+        // We could persist remarks via a field; for brevity, skipped
+        nicApplicationRepository.save(app);
+        ra.addFlashAttribute("successMessage","Application updated");
+        return "redirect:/admin/applications/"+id;
+    }
+
+    @GetMapping("/officers")
+    public String officers(Authentication auth, Model model){
+        addUser(auth, model);
+        model.addAttribute("records", officerRecordRepository.findByOfficerUsernameOrderByUpdatedAtDesc(auth.getName()));
+        return "admin/officers";
+    }
+
+    @PostMapping("/officers")
+    public String createOfficer(Authentication auth,
+                                @RequestParam String title,
+                                @RequestParam String details,
+                                RedirectAttributes ra){
+        OfficerRecord r = new OfficerRecord();
+        r.setOfficerUsername(auth.getName());
+        r.setTitle(title);
+        r.setDetails(details);
+        officerRecordRepository.save(r);
+        ra.addFlashAttribute("successMessage","Record created");
+        return "redirect:/admin/officers";
+    }
+
+    @PostMapping("/officers/{id}")
+    public String updateOfficer(Authentication auth,
+                                @PathVariable Long id,
+                                @RequestParam String title,
+                                @RequestParam String details,
+                                RedirectAttributes ra){
+        OfficerRecord r = officerRecordRepository.findById(id).orElseThrow();
+        if (!r.getOfficerUsername().equals(auth.getName())) {
+            ra.addFlashAttribute("errorMessage","You can only edit your own records");
+            return "redirect:/admin/officers";
+        }
+        r.setTitle(title);
+        r.setDetails(details);
+        officerRecordRepository.save(r);
+        ra.addFlashAttribute("successMessage","Record updated");
+        return "redirect:/admin/officers";
+    }
+
+    @PostMapping("/officers/{id}/delete")
+    public String deleteOfficer(Authentication auth,
+                                @PathVariable Long id,
+                                RedirectAttributes ra){
+        OfficerRecord r = officerRecordRepository.findById(id).orElseThrow();
+        if (!r.getOfficerUsername().equals(auth.getName())) {
+            ra.addFlashAttribute("errorMessage","You can only delete your own records");
+            return "redirect:/admin/officers";
+        }
+        officerRecordRepository.delete(r);
+        ra.addFlashAttribute("successMessage","Record deleted");
+        return "redirect:/admin/officers";
+    }
+}
+
+
+
