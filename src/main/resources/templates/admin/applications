@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Applications</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 250px;
+            background: linear-gradient(180deg, #0c0c1f 0%, #1a1a3a 100%);
+            color: white;
+            z-index: 1000;
+            box-shadow: 2px 0 20px rgba(0,0,0,0.3);
+            border-right: 1px solid rgba(59, 130, 246, 0.1);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(to right, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+
+        .logo:hover {
+            background: linear-gradient(to right, #93c5fd, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+
+        .sidebar-nav { padding: 1rem 0; }
+        .nav-item { margin: 0.25rem 0; }
+        .text_drop{ color:black; }
+
+        .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1.5rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        .nav-link:hover { color: white; background-color: rgba(59, 130, 246, 0.1); border-left-color: #3b82f6; }
+        .nav-link.active { color: white; background-color: rgba(59, 130, 246, 0.2); border-left-color: #3b82f6; }
+        .nav-link i { margin-right: 0.75rem; width: 20px; text-align: center; }
+
+        .sidebar-footer {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .profile-section { display: flex; align-items: center; margin-bottom: 1rem; text-decoration: none; color: inherit; }
+        .profile-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            display: flex; align-items: center; justify-content: center;
+            margin-right: 0.75rem; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+        }
+        .profile-info { flex: 1; }
+        .profile-name { font-size: 0.9rem; font-weight: 600; margin: 0; }
+        .profile-username { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin: 0; }
+
+        .btn-logout {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: none; color: white; padding: 0.5rem 1rem;
+            border-radius: 8px; text-decoration: none; display: inline-flex;
+            align-items: center; font-size: 0.9rem; transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3); width: 100%; justify-content: center;
+        }
+        .btn-logout:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white; text-decoration: none; transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Main Content */
+        .main-content { margin-left: 250px; padding: 24px; min-height: 100vh; }
+        .card {
+            background: rgba(15,23,42,.9);
+            border: 1px solid rgba(59,130,246,.1);
+            border-radius: 12px; padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.4);
+        }
+
+        .application-item {
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid rgba(59,130,246,.1); border-radius: 10px;
+            padding: 16px; margin-bottom: 12px; transition: all 0.3s ease;
+        }
+        .application-item:hover { border-color: rgba(59,130,246,.3); background: rgba(15,23,42,.7); }
+
+        .btn {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            border: none; color: #fff; padding: 8px 16px; border-radius: 8px;
+            text-decoration: none; transition: all 0.3s ease; font-size: 14px; margin-top: 11px;
+        }
+        .btn:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            color: #fff; text-decoration: none; transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+        }
+
+        .status { padding: 4px 12px; border: 1px solid rgba(59,130,246,.2); border-radius: 8px; color: #93c5fd; font-size: 12px; font-weight: 500; }
+        .meta { color: #94a3b8; font-size: 14px; }
+        .empty-state { text-align: center; padding: 40px 0; color: #94a3b8; }
+
+        /* Modal Overlay */
+        .overlay {
+            position: fixed; inset: 0; background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 2000;
+        }
+        .overlay.active { display: flex; }
+        .modal-card {
+            width: 95%; max-width: 800px; background: rgba(15,23,42,.95);
+            border: 1px solid rgba(59,130,246,.2); border-radius: 14px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.5); overflow: hidden;
+        }
+        .decision{ margin-bottom: 6px; }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px; background: linear-gradient(180deg, rgba(30,58,138,.6), rgba(15,23,42,.6));
+            border-bottom: 1px solid rgba(59,130,246,.2);
+        }
+        .modal-title { font-size: 18px; color: #e0e7ff; font-weight: 600; }
+        .modal-close { background: transparent; border: 1px solid rgba(148,163,184,.3); color: #cbd5e1; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+        .modal-body { padding: 18px 20px; max-height: 70vh; overflow: auto; }
+
+        .field-row { display:flex; gap:14px; margin-bottom:12px; }
+        .field { flex:1; background: rgba(30,41,59,.7); border:1px solid #334155; border-radius:10px; padding:12px; }
+        .field-label { color:#94a3b8; font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+        .field-value { color:#e2e8f0; font-size:15px; margin-top:4px; }
+
+        .status-chip { display:inline-block; padding:4px 10px; border-radius:999px; border:1px solid rgba(59,130,246,.3); color:#93c5fd; }
+
+        .section { border: 1px solid rgba(59,130,246,.15); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+        .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px; }
+        .section-title { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+        .section-a { background: rgba(30,41,59,.5); }
+        .section-b { background: rgba(2,44,71,.35); }
+        .section-c { background: rgba(45,22,75,.30); }
+        .section-d { background: rgba(71,33,2,.30); }
+        .section-e { background: rgba(12,50,38,.30); }
+
+        /* Validation helpers */
+        .input-like { width:100%; background:transparent; border:none; color:#e2e8f0; }
+        .invalid { border-color:#ef4444 !important; box-shadow:0 0 0 2px rgba(239,68,68,.25); }
+        .valid { border-color:#22c55e !important; }
+        .error-text { color:#fca5a5; font-size:.85rem; margin-top:.35rem; display:none; }
+        .show-error .error-text { display:block; }
+
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .main-content { margin-left: 0; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="sidebar-header">
+        <a href="/dashboard" class="logo">
+            <i class="fas fa-chart-line me-2"></i>Ceylon Electric
+        </a>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-item">
+            <a href="/admin" class="nav-link">
+                <i class="fas fa-tachometer-alt"></i>
+                Dashboard
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="/admin/applications" class="nav-link active">
+                <i class="fas fa-tachometer-alt"></i>
+                1st Reviewer Panel
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="/admin/reviews/documents" class="nav-link">
+                <i class="fas fa-file-alt"></i>
+                2nd Reviewer Panel
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="/admin/reviews/delivery" class="nav-link">
+                <i class="fas fa-truck"></i>
+                3rd Reviewer Panel
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="/admin/contacts" class="nav-link">
+                <i class="fas fa-address-book"></i>
+                Contacts
+            </a>
+        </div>
+    </nav>
+
+    <div class="sidebar-footer">
+        <a href="/profile" class="profile-section">
+            <div class="profile-avatar">
+                <span th:text="${#strings.substring(fullName, 0, 1)}">U</span>
+            </div>
+            <div class="profile-info">
+                <p class="profile-name" th:text="${fullName}">User Name</p>
+                <p class="profile-username" th:text="'@' + ${username}">@username</p>
+            </div>
+        </a>
+        <a href="/logout" class="btn-logout">
+            <i class="fas fa-sign-out-alt me-2"></i>Logout
+        </a>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <div class="card">
+        <div th:if="${#lists.isEmpty(applications)}" class="empty-state">
+            No applications to review at this time.
+        </div>
+        <div th:each="a : ${applications}" class="application-item">
+            <div>
+                <div>
+                    <strong th:text="${a.fullName}">Name</strong>
+                    · <span class="status" th:text="${a.status}">PENDING</span>
+                </div>
+                <div class="meta">
+                    Submitted: <span th:text="${#temporals.format(a.createdAt,'yyyy-MM-dd HH:mm')}">2023-01-01 12:00</span>
+                </div>
+            </div>
+            <div>
+                <button type="button" class="btn" th:attr="data-id=${a.id}" onclick="openDetails(this)" style="margin-right:8px;">Open</button>
+                <button type="button" class="btn" th:if="${a.status != 'VALIDATED' and a.status != 'REJECTED'}" th:attr="data-id=${a.id}" onclick="openReview(this)" style="background:linear-gradient(135deg,#10b981,#059669); margin-right:8px;">Validate</button>
+                <button type="button" class="btn" th:attr="data-id=${a.id}" onclick="openReviewsList(this)" style="background:linear-gradient(135deg,#f59e0b,#d97706)">My Reviews</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Overlay -->
+<div id="overlay" class="overlay" onclick="backdropClose(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title">Application Details</div>
+            <button class="modal-close" onclick="closeOverlay()">Close</button>
+        </div>
+        <div class="modal-body">
+            <div class="section section-a">
+                <div class="section-header"><div class="section-title">Applicant</div></div>
+                <div class="field-row">
+                    <div class="field"><div class="field-label">Full Name</div><div id="f-fullName" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">First Name</div><div id="f-firstName" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">Last Name</div><div id="f-lastName" class="field-value">-</div></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><div class="field-label">Existing NIC</div><div id="f-nic" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">Date of Birth</div><div id="f-dateOfBirth" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">Gender</div><div id="f-gender" class="field-value">-</div></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><div class="field-label">Nationality</div><div id="f-nationality" class="field-value">-</div></div>
+                </div>
+            </div>
+            <div class="section section-b">
+                <div class="section-header"><div class="section-title">Contact & Account</div></div>
+                <div class="field-row">
+                    <div class="field"><div class="field-label">Username</div><div id="f-username" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">User Email</div><div id="f-userEmail" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">Phone</div><div id="f-phone" class="field-value">-</div></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><div class="field-label">Email (Form)</div><div id="f-email" class="field-value">-</div></div>
+                </div>
+            </div>
+            <div class="section section-c">
+                <div class="section-header"><div class="section-title">Address</div></div>
+                <div class="field-row">
+                    <div class="field"><div class="field-label">Address Line 1</div><div id="f-addressLine1" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">City</div><div id="f-city" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">District</div><div id="f-district" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">Postal Code</div><div id="f-postalCode" class="field-value">-</div></div>
+                </div>
+            </div>
+            <div class="section section-d">
+                <div class="section-header"><div class="section-title">Application</div></div>
+                <div class="field-row">
+                    <div class="field"><div class="field-label">Application ID</div><div id="f-id" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">Type</div><div id="f-applicationType" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">Status</div><div id="f-status" class="field-value"><span class="status-chip">-</span></div></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><div class="field-label">Reason for Request</div><div id="f-reasonForRequest" class="field-value">-</div></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><div class="field-label">Remarks</div><div id="f-remarks" class="field-value">-</div></div>
+                </div>
+            </div>
+            <div class="section section-e">
+                <div class="section-header"><div class="section-title">Documents & Timestamps</div></div>
+                <div class="field-row">
+                    <div class="field"><div class="field-label">Uploaded File</div><div class="field-value"><a id="f-uploadedFileLink" href="#" target="_blank" style="color:#93c5fd; text-decoration:none;"><span id="f-uploadedFileName">-</span></a></div></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><div class="field-label">Submitted</div><div id="f-createdAt" class="field-value">-</div></div>
+                    <div class="field"><div class="field-label">Last Updated</div><div id="f-updatedAt" class="field-value">-</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ---------- Utilities ---------- */
+    function setText(id, value){
+        const el = document.getElementById(id);
+        if(el){ el.textContent = value ?? '-'; }
+    }
+    function formatDate(v){
+        if(!v) return '-';
+        try{ return new Date(v).toLocaleString(); }catch{ return String(v); }
+    }
+    function closeOverlay(){ document.getElementById('overlay').classList.remove('active'); }
+    function backdropClose(e){ if(e.target.id === 'overlay') closeOverlay(); }
+
+    /* ---------- Details Modal ---------- */
+    async function openDetails(btn){
+        const id = btn.getAttribute('data-id');
+        try{
+            const res = await fetch(`/admin/applications/${id}/details`, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+            if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
+            const d = await res.json();
+
+            setText('f-fullName', d.fullName);
+            setText('f-username', d.username);
+            setText('f-userEmail', d.userEmail);
+            setText('f-id', d.id);
+            const statusChip = document.querySelector('#f-status .status-chip');
+            if(statusChip){ statusChip.textContent = d.status ?? '-'; }
+            // Wizard fields
+            setText('f-firstName', d.firstName);
+            setText('f-lastName', d.lastName);
+            setText('f-nic', d.nic);
+            setText('f-dateOfBirth', d.dateOfBirth ? new Date(d.dateOfBirth).toLocaleDateString() : '-');
+            setText('f-gender', d.gender);
+            setText('f-nationality', d.nationality);
+            setText('f-email', d.email);
+            setText('f-phone', d.phone);
+            setText('f-addressLine1', d.addressLine1);
+            setText('f-city', d.city);
+            setText('f-district', d.district);
+            setText('f-postalCode', d.postalCode);
+            setText('f-applicationType', d.applicationType);
+            setText('f-reasonForRequest', d.reasonForRequest);
+            setText('f-remarks', d.remarks);
+            setText('f-createdAt', formatDate(d.createdAt));
+            setText('f-updatedAt', formatDate(d.updatedAt));
+            setText('f-uploadedFileName', d.uploadedFileName);
+
+            const lnk = document.getElementById('f-uploadedFileLink');
+            if(lnk){
+                if(d.uploadedFilePath){
+                    const path = d.uploadedFilePath;
+                    const idx = path.lastIndexOf('/uploads/');
+                    lnk.href = idx >= 0 ? path.substring(idx) : path;
+                } else {
+                    lnk.removeAttribute('href');
+                }
+            }
+            document.getElementById('overlay').classList.add('active');
+            document.querySelector('#overlay .modal-title').textContent = 'Application Details';
+        }catch(e){
+            console.error('Details fetch failed:', e);
+            alert('Unable to load application details');
+        }
+    }
+
+    /* ---------- Validation helpers ---------- */
+    const DECISIONS = ['APPROVED','REJECTED'];
+    const MIN_REJECT_REMARKS = 10;
+    const MAX_REMARKS = 500;
+
+    function sanitizeText(s){
+        if(s == null) return '';
+        return String(s).replace(/[<>&"'`]/g, ch => ({
+            '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;','`':'&#96;'
+        }[ch]));
+    }
+    function showError(container, msg){
+        container.classList.add('show-error');
+        container.classList.add('invalid');
+        const err = container.querySelector('.error-text');
+        if(err){ err.textContent = msg; }
+    }
+    function clearError(container){
+        container.classList.remove('show-error','invalid');
+        const err = container.querySelector('.error-text');
+        if(err){ err.textContent = ''; }
+    }
+    function markValid(container){
+        container.classList.remove('invalid');
+        container.classList.add('valid');
+        setTimeout(()=>container.classList.remove('valid'), 800);
+    }
+
+    function validateDecision(decision){
+        return DECISIONS.includes(decision);
+    }
+    function validateRemarks(decision, remarks){
+        const r = (remarks || '').trim();
+        if(decision === 'REJECTED'){
+            if(r.length < MIN_REJECT_REMARKS) return `Remarks required (min ${MIN_REJECT_REMARKS} chars) when rejecting.`;
+        }
+        if(r.length > MAX_REMARKS) return `Remarks too long (max ${MAX_REMARKS} chars).`;
+        return null; // ok
+    }
+
+    /* ---------- Review Modal (Validate) ---------- */
+    function openReview(btn){
+        const id = btn.getAttribute('data-id');
+        const formHtml = `
+            <form id="reviewForm" method="post" action="/admin/applications/${id}/review" novalidate>
+                <div class="field-row">
+                    <div class="field" id="decisionWrap">
+                        <div class="field-label">Decision</div>
+                        <select name="decision" id="decision" class="input-like" required style="background:transparent;border:none;color: #e2e8f0">
+                            <option value="">Select…</option>
+                            <option class="text_drop" value="APPROVED">Approve</option>
+                            <option class="text_drop" value="REJECTED">Reject</option>
+                        </select>
+                        <div class="error-text"></div>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field" id="remarksWrap">
+                        <div class="field-label">Remarks</div>
+                        <textarea name="remarks" id="remarks" rows="4" class="input-like" style="width:100%;resize:vertical;"></textarea>
+                        <div class="error-text"></div>
+                        <div class="meta" style="margin-top:6px;color:#94a3b8;font-size:12px;">If rejecting, provide a clear reason (min ${MIN_REJECT_REMARKS} chars). Max ${MAX_REMARKS} chars.</div>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field" style="display:flex;gap:8px;align-items:center;">
+                        <button type="submit" class="btn">Save Review</button>
+                        <button type="button" class="btn" style="background:linear-gradient(135deg,#ef4444,#dc2626)" onclick="closeOverlay()">Cancel</button>
+                    </div>
+                </div>
+            </form>
+        `;
+        const body = document.querySelector('#overlay .modal-body');
+        if(body){ body.innerHTML = formHtml; }
+        const title = document.querySelector('#overlay .modal-title');
+        if(title){ title.textContent = 'Validate Application'; }
+        document.getElementById('overlay').classList.add('active');
+
+        // attach validation
+        const form = document.getElementById('reviewForm');
+        attachValidationToReviewForm(form);
+    }
+
+    function attachValidationToReviewForm(form){
+        const decision = form.querySelector('#decision');
+        const remarks = form.querySelector('#remarks');
+        const decisionWrap = form.querySelector('#decisionWrap');
+        const remarksWrap = form.querySelector('#remarksWrap');
+
+        function validateAll(){
+            let ok = true;
+            clearError(decisionWrap);
+            clearError(remarksWrap);
+
+            const dval = decision.value;
+            if(!validateDecision(dval)){
+                showError(decisionWrap, 'Please select a decision.');
+                ok = false;
+            } else {
+                markValid(decisionWrap);
+            }
+
+            const rmsg = validateRemarks(dval, remarks.value);
+            if(rmsg){
+                showError(remarksWrap, rmsg);
+                ok = false;
+            } else {
+                // sanitize before submit
+                remarks.value = sanitizeText(remarks.value.trim());
+                markValid(remarksWrap);
+            }
+            return ok;
+        }
+
+        decision.addEventListener('change', validateAll);
+        remarks.addEventListener('input', validateAll);
+
+        form.addEventListener('submit', (e)=>{
+            if(!validateAll()){
+                e.preventDefault();
+                const firstErr = form.querySelector('.invalid select, .invalid textarea');
+                if(firstErr) firstErr.focus();
+            }
+        });
+    }
+
+    /* ---------- Reviews List (My Reviews) ---------- */
+    async function openReviewsList(btn){
+        const appId = btn.getAttribute('data-id');
+        try{
+            const res = await fetch(`/admin/applications/${appId}/reviews`, { credentials: 'same-origin' });
+            if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
+            const list = await res.json();
+            const username = (document.querySelector('.profile-username')?.textContent || '').replace(/^@/, '');
+            let rows = '';
+            for(const r of list){
+                const isMine = username && r.reviewerUsername === username;
+                rows += `
+                    <div class="field-row">
+                        <div class="field"><div class="field-label">Reviewer</div><div class="field-value">${r.reviewerUsername}</div></div>
+                        <div class="field"><div class="field-label">Decision</div><div class="field-value">${r.decision}</div></div>
+                        <div class="field"><div class="field-label">When</div><div class="field-value">${r.createdAt || '-'}</div></div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field"><div class="field-label">Remarks</div><div class="field-value">${sanitizeText(r.remarks || '-')}</div></div>
+                    </div>
+                    ${isMine ? `
+                    <div class="field-row">
+                        <div class="field">
+                            <form class="inline-review-form" method="post" action="/admin/reviews/${r.id}/update" novalidate style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
+                                <div class="field" id="decisionWrap-${r.id}" style="flex:0 0 180px;">
+                                    <div class="field-label">Decision</div>
+                                    <select name="decision" class="input-like" style="background:transparent;border:none;color:white;border-radius:8px;padding:6px;">
+                                        <option value="">Select…</option>
+                                        <option value="APPROVED" ${r.decision==='APPROVED'?'selected':''}>Approve</option>
+                                        <option value="REJECTED" ${r.decision==='REJECTED'?'selected':''}>Reject</option>
+                                    </select>
+                                    <div class="error-text"></div>
+                                </div>
+                                <div class="field" id="remarksWrap-${r.id}" style="flex:1 1 260px;">
+                                    <div class="field-label">Remarks</div>
+                                    <input type="text" name="remarks" value="${sanitizeText(r.remarks || '')}" class="input-like" style="width:100%;border:1px solid #334155;border-radius:8px;padding:6px;" />
+                                    <div class="error-text"></div>
+                                    <div class="meta" style="margin-top:6px;color:#94a3b8;font-size:12px;">If rejecting, min ${MIN_REJECT_REMARKS} chars. Max ${MAX_REMARKS}.</div>
+                                </div>
+                                <div style="display:flex; gap:8px; align-items:center;">
+                                    <button type="submit" class="btn">Save</button>
+                                    <form method="post" action="/admin/reviews/${r.id}/delete" style="display:inline-block;margin-left:8px;" onsubmit="return confirm('Delete this review?');">
+                                        <button type="submit" class="btn" style="background:linear-gradient(135deg,#ef4444,#dc2626)">Delete</button>
+                                    </form>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    ` : '' }
+                    <hr style="border-color:rgba(59,130,246,.1); margin:10px 0;" />
+                `;
+            }
+            const body = document.querySelector('#overlay .modal-body');
+            if(body){
+                body.innerHTML = `<div class="section section-b">
+                    <div class="section-header"><div class="section-title">Review Records</div></div>
+                    ${rows || '<div class="meta">No reviews yet.</div>'}
+                </div>`;
+            }
+            const title = document.querySelector('#overlay .modal-title');
+            if(title){ title.textContent = 'Review Records'; }
+            document.getElementById('overlay').classList.add('active');
+
+            // Attach validation to all inline update forms
+            attachValidationToInlineForms();
+        }catch(e){
+            console.error('Reviews list failed:', e);
+            alert('Unable to load reviews');
+        }
+    }
+
+    function attachValidationToInlineForms(){
+        document.querySelectorAll('.inline-review-form').forEach(form=>{
+            const decision = form.querySelector('select[name="decision"]');
+            const remarks = form.querySelector('input[name="remarks"]');
+            const decisionWrap = decision.closest('.field');
+            const remarksWrap = remarks.closest('.field');
+
+            function validateAll(){
+                let ok = true;
+                clearError(decisionWrap);
+                clearError(remarksWrap);
+
+                const dval = decision.value;
+                if(!validateDecision(dval)){
+                    showError(decisionWrap, 'Please select a decision.');
+                    ok = false;
+                } else {
+                    markValid(decisionWrap);
+                }
+
+                const rmsg = validateRemarks(dval, remarks.value);
+                if(rmsg){
+                    showError(remarksWrap, rmsg);
+                    ok = false;
+                } else {
+                    remarks.value = sanitizeText(remarks.value.trim());
+                    markValid(remarksWrap);
+                }
+                return ok;
+            }
+
+            decision.addEventListener('change', validateAll);
+            remarks.addEventListener('input', validateAll);
+            form.addEventListener('submit', (e)=>{
+                if(!validateAll()){
+                    e.preventDefault();
+                    (form.querySelector('.invalid select, .invalid input') || decision).focus();
+                }
+            });
+        });
+    }
+</script>
+</body>
+</html>
