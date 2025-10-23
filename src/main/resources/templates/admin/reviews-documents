@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Documents Review</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%); color: #e0e0e0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100vh; margin: 0; padding: 0; }
+        .sidebar { position: fixed; top: 0; left: 0; height: 100vh; width: 250px; background: linear-gradient(180deg, #0c0c1f 0%, #1a1a3a 100%); color: white; z-index: 1000; box-shadow: 2px 0 20px rgba(0,0,0,0.3); border-right: 1px solid rgba(59, 130, 246, 0.1); }
+        .sidebar-header { padding: 1.5rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .logo { font-size: 1.5rem; font-weight: bold; background: linear-gradient(to right, #60a5fa, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; }
+        .logo:hover { background: linear-gradient(to right, #93c5fd, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; }
+        .sidebar-nav { padding: 1rem 0; }
+        .nav-item { margin: 0.25rem 0; }
+        .nav-link { color: rgba(255,255,255,0.8); padding: 0.75rem 1.5rem; text-decoration: none; display: flex; align-items: center; transition: all 0.3s ease; border-left: 3px solid transparent; }
+        .nav-link:hover { color: white; background-color: rgba(59, 130, 246, 0.1); border-left-color: #3b82f6; }
+        .nav-link.active { color: white; background-color: rgba(59, 130, 246, 0.2); border-left-color: #3b82f6; }
+        .nav-link i { margin-right: 0.75rem; width: 20px; text-align: center; }
+        .sidebar-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); }
+        .profile-section { display: flex; align-items: center; margin-bottom: 1rem; text-decoration: none; color: inherit; }
+        .profile-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #1e40af); display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; font-weight: bold; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3); }
+        .profile-info { flex: 1; }
+        .profile-name { font-size: 0.9rem; font-weight: 600; margin: 0; }
+        .profile-username { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin: 0; }
+        .btn-logout { background: linear-gradient(135deg, #ef4444, #dc2626); border: none; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; font-size: 0.9rem; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3); width: 100%; justify-content: center; }
+        .btn-logout:hover { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; text-decoration: none; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); }
+        .main-content { margin-left: 250px; padding: 24px; min-height: 100vh; }
+        .card { background: rgba(15,23,42,.9); border: 1px solid rgba(59,130,246,.1); border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+        .application-item { border: 1px solid rgba(59,130,246,.1); border-radius: 10px; padding: 16px; margin-bottom: 12px; transition: all 0.3s ease; max-height: 160px; overflow: hidden; }
+        .application-item:hover { border-color: rgba(59,130,246,.3); background: rgba(15,23,42,.7); }
+        .status { padding: 4px 12px; border: 1px solid rgba(59,130,246,.2); border-radius: 8px; color: #93c5fd; font-size: 12px; font-weight: 500; }
+        .meta { color: #94a3b8; font-size: 14px; }
+        .btn { background: linear-gradient(135deg, #2563eb, #1d4ed8); border: none; color: #fff; padding: 8px 16px; border-radius: 8px; text-decoration: none; transition: all 0.3s ease; font-size: 14px; margin-top: 11px; }
+        .btn:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); color: #fff; text-decoration: none; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3); }
+        .remarks { color: #e2e8f0; font-size: 14px; margin-top: 8px; white-space: pre-wrap; }
+        /* Modal Overlay Styles */
+        .overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.8); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .overlay.active { display: flex; }
+        .modal-card { width: 95%; max-width: 800px; background: rgba(15,23,42,.95); border: 1px solid rgba(59,130,246,.2); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.5); overflow: hidden; }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: linear-gradient(180deg, rgba(30,58,138,.6), rgba(15,23,42,.6)); border-bottom: 1px solid rgba(59,130,246,.2); }
+        .modal-title { font-size: 18px; color: #e0e7ff; font-weight: 600; }
+        .modal-close { background: transparent; border: 1px solid rgba(148,163,184,.3); color: #cbd5e1; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+        .modal-body { padding: 18px 20px; max-height: 70vh; overflow: auto; }
+        .field-row { display:flex; gap:14px; margin-bottom:12px; }
+        .field { flex:1; background: rgba(30,41,59,.7); border:1px solid #334155; border-radius:10px; padding:12px; }
+        .field-label { color:#94a3b8; font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+        .field-value { color:#e2e8f0; font-size:15px; margin-top:4px; }
+        .section { border: 1px solid rgba(59,130,246,.15); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+        .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px; }
+        .section-title { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+        .section-b { background: rgba(2,44,71,.35); }
+        
+        /* Validation Status Styles */
+        .validation-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+        .validation-valid { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,.35); }
+        .validation-invalid { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid rgba(239,68,68,.35); }
+        .validation-pending { background: rgba(245,158,11,.15); color: #fbbf24; border: 1px solid rgba(245,158,11,.35); }
+        .validation-icon { font-size: 14px; }
+        
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .main-content { margin-left: 0; padding: 15px; } }
+    </style>
+    <style>
+        .text_drop{ color: black; }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="sidebar-header">
+        <a href="/dashboard" class="logo">
+            <i class="fas fa-chart-line me-2"></i>Ceylon Electric
+        </a>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-item">
+            <a href="/admin" class="nav-link">
+                <i class="fas fa-tachometer-alt"></i>
+                Dashboard
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="/admin/applications" class="nav-link">
+                <i class="fas fa-tachometer-alt"></i>
+                1st Reviewer Panel
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="/admin/reviews/documents" class="nav-link active">
+                <i class="fas fa-file-alt"></i>
+                2nd Reviewer Panel
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="/admin/reviews/delivery" class="nav-link">
+                <i class="fas fa-truck"></i>
+                3rd Reviewer Panel
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="/admin/contacts" class="nav-link">
+                <i class="fas fa-address-book"></i>
+                Contacts
+            </a>
+        </div>
+    </nav>
+    <div class="sidebar-footer">
+        <a href="/profile" class="profile-section">
+            <div class="profile-avatar">
+                <span th:text="${#strings.substring(fullName, 0, 1)}">U</span>
+            </div>
+            <div class="profile-info">
+                <p class="profile-name" th:text="${fullName}">User Name</p>
+                <p class="profile-username" th:text="'@' + ${username}">@username</p>
+            </div>
+        </a>
+        <a href="/logout" class="btn-logout">
+            <i class="fas fa-sign-out-alt me-2"></i>Logout
+        </a>
+    </div>
+    
+</div>
+
+<div class="main-content">
+    <div class="card">
+        <h4 class="mb-3">Validated Applications (from 1st Panel)</h4>
+        <div th:if="${#lists.isEmpty(items)}" class="meta">No validated applications available for document review.</div>
+        <div th:each="it : ${items}" class="application-item">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div>
+                        <strong th:text="${it.fullName}">Name</strong>
+                        · <span class="status" th:text="${it.status}">VALIDATED</span>
+                        <span class="validation-status validation-valid" th:if="${it.documentValidationStatus == 'VALID'}">
+                            <i class="fas fa-check-circle validation-icon"></i>Document Valid
+                        </span>
+                        <span class="validation-status validation-invalid" th:if="${it.documentValidationStatus == 'INVALID'}">
+                            <i class="fas fa-times-circle validation-icon"></i>Document Invalid
+                        </span>
+                        <span class="validation-status validation-pending" th:if="${it.documentValidationStatus == 'PENDING'}">
+                            <i class="fas fa-clock validation-icon"></i>Pending Review
+                        </span>
+                    </div>
+                    <div class="meta">Submitted: <span th:text="${#temporals.format(it.createdAt,'yyyy-MM-dd HH:mm')}">-</span></div>
+                    <div class="remarks" th:if="${it.firstPanelRemarks}">
+                        <div class="text-muted" style="font-size:12px;">1st Panel Remarks</div>
+                        <div th:text="${it.firstPanelRemarks}">-</div>
+                        <div class="meta" style="margin-top:6px;">
+                            <span th:text="'By ' + ${it.firstPanelReviewer}">-</span>
+                            · <span th:text="${#temporals.format(it.firstPanelReviewedAt,'yyyy-MM-dd HH:mm')}">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <button type="button" class="btn" th:attr="data-id=${it.id}" onclick="openDetails(this)" style="margin-right:8px;">Open</button>
+                    <button type="button" class="btn" style="background:linear-gradient(135deg,#10b981,#059669); margin-right:8px;" th:attr="data-id=${it.id}" onclick="openDocumentApprove(this)">Approve</button>
+                    <button type="button" class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706)" th:attr="data-id=${it.id}" onclick="openMyDocumentReviews(this)">My Document Reviews</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="overlay" class="overlay" onclick="backdropClose(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title">Modal</div>
+            <button class="modal-close" onclick="closeOverlay()">Close</button>
+        </div>
+        <div class="modal-body"></div>
+    </div>
+ </div>
+
+<script>
+    function setText(id, value){ const el = document.getElementById(id); if(el){ el.textContent = value ?? '-'; } }
+    function openOverlay(title, bodyHtml){
+        const overlay = document.getElementById('overlay');
+        const body = overlay.querySelector('.modal-body');
+        const titleEl = overlay.querySelector('.modal-title');
+        if(titleEl) titleEl.textContent = title;
+        if(body) body.innerHTML = bodyHtml;
+        overlay.classList.add('active');
+    }
+    function closeOverlay(){ document.getElementById('overlay').classList.remove('active'); }
+    function backdropClose(e){ if(e.target.id === 'overlay') closeOverlay(); }
+
+    async function openDetails(btn){
+        const id = btn.getAttribute('data-id');
+        try{
+            const res = await fetch(`/admin/applications/${id}/details`, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+            if(!res.ok){ throw new Error(`HTTP ${res.status}`); }
+            const d = await res.json();
+            const html = `
+                <div class="section section-b">
+                    <div class="section-header"><div class="section-title">Applicant</div></div>
+                    <div class="field-row">
+                        <div class="field"><div class="field-label">Full Name</div><div class="field-value">${d.fullName ?? '-'}</div></div>
+                        <div class="field"><div class="field-label">Username</div><div class="field-value">${d.username ?? '-'}</div></div>
+                        <div class="field"><div class="field-label">User Email</div><div class="field-value">${d.userEmail ?? '-'}</div></div>
+                    </div>
+                </div>
+                <div class="section section-b">
+                    <div class="section-header"><div class="section-title">Application</div></div>
+                    <div class="field-row">
+                        <div class="field"><div class="field-label">Application ID</div><div class="field-value">${d.id ?? '-'}</div></div>
+                        <div class="field"><div class="field-label">Type</div><div class="field-value">${d.applicationType ?? '-'}</div></div>
+                        <div class="field"><div class="field-label">Status</div><div class="field-value">${d.status ?? '-'}</div></div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field"><div class="field-label">Reason</div><div class="field-value">${d.reasonForRequest ?? '-'}</div></div>
+                        <div class="field"><div class="field-label">Remarks</div><div class="field-value">${d.remarks ?? '-'}</div></div>
+                    </div>
+                </div>
+                <div class="section section-b">
+                    <div class="section-header"><div class="section-title">Documents & Timestamps</div></div>
+                    <div class="field-row">
+                        <div class="field"><div class="field-label">Uploaded File</div><div class="field-value">${d.uploadedFileName ? `<a href="${(d.uploadedFilePath||'').toString().includes('/uploads/')? d.uploadedFilePath.substring(d.uploadedFilePath.lastIndexOf('/uploads/')) : (d.uploadedFilePath||'#')}" target="_blank" style="color:#93c5fd; text-decoration:none;">${d.uploadedFileName}</a>` : '-'}</div></div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field"><div class="field-label">Submitted</div><div class="field-value">${d.createdAt ? new Date(d.createdAt).toLocaleString() : '-'}</div></div>
+                        <div class="field"><div class="field-label">Last Updated</div><div class="field-value">${d.updatedAt ? new Date(d.updatedAt).toLocaleString() : '-'}</div></div>
+                    </div>
+                </div>
+            `;
+            openOverlay('Application Details', html);
+        }catch(e){
+            console.error('Details fetch failed:', e);
+            alert('Unable to load application details');
+        }
+    }
+
+    function openDocumentApprove(btn){
+        const id = btn.getAttribute('data-id');
+        const formHtml = `
+            <form method="post" action="/admin/applications/${id}/documents/reviews" onsubmit="return validateDocumentReview(this)">
+                <div class="field-row">
+                    <div class="field">
+                        <div class="field-label">State</div>
+                        <select name="state" class="field-value" style="background:black;border:1px solid #334155;color:white;border-radius:8px;padding:6px;" onchange="updateValidationStatus(this)">
+                            <option value="DELAYED">Delayed</option>
+                            <option value="READY_TO_ISSUE">Ready to Issue</option>
+                        </select>
+                    </div>
+                    <div class="field" style="flex:2">
+                        <div class="field-label">Remarks (optional)</div>
+                        <textarea name="remarks" rows="4" style="width:100%;background:transparent;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:6px;" oninput="validateRemarksInput(this)" placeholder="Enter remarks (no special symbols allowed)"></textarea>
+                        <div id="remarks-error" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: none;"></div>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <div id="validation-status" class="validation-status validation-pending">
+                            <i class="fas fa-clock validation-icon"></i>Pending Review
+                        </div>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <button type="submit" class="btn">Save</button>
+                        <button type="button" class="btn" style="background:linear-gradient(135deg,#ef4444,#dc2626)" onclick="closeOverlay()">Cancel</button>
+                    </div>
+                </div>
+            </form>
+        `;
+        openOverlay('Approve Document Review', formHtml);
+    }
+
+    function updateValidationStatus(selectElement) {
+        const statusDiv = document.getElementById('validation-status');
+        const value = selectElement.value;
+        
+        if (value === 'READY_TO_ISSUE') {
+            statusDiv.className = 'validation-status validation-valid';
+            statusDiv.innerHTML = '<i class="fas fa-check-circle validation-icon"></i>Document Valid';
+        } else if (value === 'DELAYED') {
+            statusDiv.className = 'validation-status validation-invalid';
+            statusDiv.innerHTML = '<i class="fas fa-times-circle validation-icon"></i>Document Invalid';
+        }
+    }
+
+    function validateDocumentReview(form) {
+        const state = form.querySelector('select[name="state"]').value;
+        const remarks = form.querySelector('textarea[name="remarks"]').value;
+        
+        if (state === 'DELAYED' && (!remarks || remarks.trim() === '')) {
+            alert('Please provide remarks when marking document as delayed.');
+            return false;
+        }
+        
+        // Check for symbols in remarks
+        if (remarks && !isValidRemarks(remarks)) {
+            alert('Remarks cannot contain special symbols. Please use only letters, numbers, spaces, and basic punctuation.');
+            return false;
+        }
+        
+        return true;
+    }
+
+    function validateRemarksInput(textarea) {
+        const errorDiv = document.getElementById('remarks-error');
+        const value = textarea.value;
+        
+        if (value && !isValidRemarks(value)) {
+            errorDiv.textContent = 'Special symbols are not allowed. Use only letters, numbers, spaces, and basic punctuation.';
+            errorDiv.style.display = 'block';
+            textarea.style.borderColor = '#ef4444';
+        } else {
+            errorDiv.style.display = 'none';
+            textarea.style.borderColor = '#334155';
+        }
+    }
+
+    function isValidRemarks(text) {
+        // Allow letters, numbers, spaces, and basic punctuation (.,!?-)
+        const validPattern = /^[a-zA-Z0-9\s.,!?-]*$/;
+        return validPattern.test(text);
+    }
+
+    function validateEditRemarksInput(input) {
+        const value = input.value;
+        
+        if (value && !isValidRemarks(value)) {
+            input.style.borderColor = '#ef4444';
+            input.title = 'Special symbols are not allowed. Use only letters, numbers, spaces, and basic punctuation.';
+        } else {
+            input.style.borderColor = '#334155';
+            input.title = '';
+        }
+    }
+
+    async function openMyDocumentReviews(btn){
+        const id = btn.getAttribute('data-id');
+        try{
+            const res = await fetch(`/admin/applications/${id}/documents/reviews`, { credentials: 'same-origin' });
+            if(!res.ok){ throw new Error('Failed to load document reviews'); }
+            const list = await res.json();
+            const username = (document.querySelector('.profile-username')?.textContent || '').replace(/^@/, '');
+            let rows = '';
+            for(const r of list){
+                const isOwner = r.isOwner === true || (username && r.reviewerUsername === username);
+                rows += `
+                    <div class="field-row">
+                        <div class="field"><div class="field-label">Reviewer</div><div class="field-value">${r.reviewerUsername}</div></div>
+                        <div class="field"><div class="field-label">State</div><div class="field-value">${r.state || '-'}</div></div>
+                        <div class="field"><div class="field-label">When</div><div class="field-value">${r.createdAt || '-'}</div></div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field"><div class="field-label">Remarks</div><div class="field-value">${r.remarks || '-'}</div></div>
+                    </div>
+                    ${isOwner ? `
+                    <div class="field-row">
+                        <div class="field">
+                            <form method="post" action="/admin/documents/reviews/${r.id}/update" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <select name="state" style="background:black;border:1px solid #334155;color:white;border-radius:8px;padding:6px;">
+                                    <option value="DELAYED" ${r.state==='DELAYED'?'selected':''}>Delayed</option>
+                                    <option value="READY_TO_ISSUE" ${r.state==='READY_TO_ISSUE'?'selected':''}>Ready to Issue</option>
+                                </select>
+                                <input type="text" name="remarks" value="${r.remarks ? r.remarks.replace(/"/g,'&quot;') : ''}" style="flex:1;background:transparent;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:6px;" oninput="validateEditRemarksInput(this)" placeholder="Enter remarks (no special symbols allowed)" />
+                                <button type="submit" class="btn">Save</button>
+                            </form>
+                            <form method="post" action="/admin/documents/reviews/${r.id}/delete" style="display:inline-block;margin-left:8px;" onsubmit="return confirm('Delete this document review?');">
+                                <button type="submit" class="btn" style="background:linear-gradient(135deg,#ef4444,#dc2626)">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                    ` : ''}
+                    <hr style="border-color:rgba(59,130,246,.1); margin:10px 0;" />
+                `;
+            }
+            const html = `<div class="section section-b"><div class="section-header"><div class="section-title">My Document Reviews</div></div>${rows || '<div class="meta">No document reviews yet.</div>'}</div>`;
+            openOverlay('My Document Reviews', html);
+        }catch(e){
+            console.error(e);
+            alert('Unable to load your document reviews');
+        }
+    }
+</script>
+</body>
+</html>
+
+
