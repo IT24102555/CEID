@@ -1,0 +1,17 @@
+package org.example.ceid_v2.repository;
+
+import org.example.ceid_v2.model.DeliveryDetail;
+import org.example.ceid_v2.model.NicApplication;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface DeliveryDetailRepository extends JpaRepository<DeliveryDetail, Long> {
+    List<DeliveryDetail> findByApplicationOrderByCreatedAtDesc(NicApplication app);
+    List<DeliveryDetail> findByApplicationAndReviewerUsernameOrderByCreatedAtDesc(NicApplication app, String reviewerUsername);
+}
+
+
+
+
+
