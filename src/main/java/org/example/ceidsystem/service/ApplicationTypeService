@@ -1,0 +1,87 @@
+package org.example.ceid_v2.service;
+
+import org.example.ceid_v2.strategy.ApplicationTypeContext;
+import org.example.ceid_v2.strategy.ApplicationTypeStrategy;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Service class that provides application type related operations
+ * This service acts as a facade for the strategy pattern implementation
+ */
+@Service
+public class ApplicationTypeService {
+    
+    @Autowired
+    private ApplicationTypeContext applicationTypeContext;
+    
+    /**
+     * Get all available application types with their display information
+     * @return list of application type information
+     */
+    public List<ApplicationTypeInfo> getAllApplicationTypes() {
+        Map<String, ApplicationTypeStrategy> strategies = applicationTypeContext.getAllStrategies();
+        
+        return strategies.values().stream()
+                .map(strategy -> new ApplicationTypeInfo(
+                    strategy.getApplicationType(),
+                    strategy.getDisplayName(),
+                    strategy.getIconClass()
+                ))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get application type information by type
+     * @param applicationType the application type
+     * @return application type information
+     */
+    public ApplicationTypeInfo getApplicationTypeInfo(String applicationType) {
+        ApplicationTypeStrategy strategy = applicationTypeContext.getStrategy(applicationType);
+        return new ApplicationTypeInfo(
+            strategy.getApplicationType(),
+            strategy.getDisplayName(),
+            strategy.getIconClass()
+        );
+    }
+    
+    /**
+     * Check if an application type is valid
+     * @param applicationType the application type to check
+     * @return true if valid, false otherwise
+     */
+    public boolean isValidApplicationType(String applicationType) {
+        return applicationTypeContext.hasStrategy(applicationType);
+    }
+    
+    /**
+     * Data class to hold application type information
+     */
+    public static class ApplicationTypeInfo {
+        private final String type;
+        private final String displayName;
+        private final String iconClass;
+        
+        public ApplicationTypeInfo(String type, String displayName, String iconClass) {
+            this.type = type;
+            this.displayName = displayName;
+            this.iconClass = iconClass;
+        }
+        
+        public String getType() {
+            return type;
+        }
+        
+        public String getDisplayName() {
+            return displayName;
+        }
+        
+        public String getIconClass() {
+            return iconClass;
+        }
+    }
+}
