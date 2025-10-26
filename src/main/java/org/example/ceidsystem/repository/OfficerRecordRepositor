@@ -1,0 +1,18 @@
+package org.example.ceid_v2.repository;
+
+import org.example.ceid_v2.model.OfficerRecord;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface OfficerRecordRepository extends JpaRepository<OfficerRecord, Long> {
+    List<OfficerRecord> findByOfficerUsernameOrderByUpdatedAtDesc(String username);
+}
+
+
+
+
+
+
+
+
